@@ -14,6 +14,8 @@ window = pyglet.window.Window(800, 400, caption='Yet Another Space Ships Game')
 # time.
 keys = pyglet.window.key.KeyStateHandler()
 window.push_handlers(keys)
+pyglet.resource.path = ['../resources']
+pyglet.resource.reindex()
 player_image = pyglet.resource.image('player-arrow.png')
 # modifico l'anchor perche' sia al centro dell'immagine
 player_image.anchor_x = player_image.width // 2
