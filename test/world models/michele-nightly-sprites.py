@@ -21,11 +21,19 @@
 
 import pyglet, random
 from pyglet.window import key
+from time import time
+from modules import debugger
 
 from math import sin, cos, asin, acos, radians, degrees, sqrt, pi
 
 # importo pyglet, random e varie funzioni della libreria matematica
 ###
+
+
+
+
+
+
 
 
 
@@ -35,9 +43,12 @@ fov = (radians(60),radians(40))                # field of view (or,ver)
 # per capire quale sara' il campo visivo, raddoppio i valori:
 # ad esempio, (60,40) mi indica 120 gradi di visuale orizzontale
 # e 80 gradi di visuale verticale
-turnrate = radians(1)                          # velocita' di rotazione
+turnrate = radians(3)                          # velocita' di rotazione
 acc = 30                                       # accelerazione
 speed = 0                                      # velocita' della nave
+start = time()
+with open('log.txt','w') as f:
+    f.write('')
 
 # per semplificare le modifiche agli attributi della nave,
 # imposto qui all'inizio il mio FOV, l'accelerazione della
@@ -48,7 +59,7 @@ speed = 0                                      # velocita' della nave
 
 # window
 
-window = pyglet.window.Window(800, 600, caption='Asteroids')
+window = pyglet.window.Window(800,600)
 keys = pyglet.window.key.KeyStateHandler()
 window.push_handlers(keys)
 ww = window.width
@@ -186,7 +197,7 @@ class Asteroid(pyglet.sprite.Sprite):
             print 'Sei morto!'
             window.close()
 
-    def rotate(self,drc):
+    def rotate(self,drc,dt):
         """Data una direzione (drc) ruoto l'astronave 
         alla velocita' di rotazione impostata
         all'inizio del file"""
@@ -200,14 +211,14 @@ class Asteroid(pyglet.sprite.Sprite):
         # si trova di fronte al giocatore o alle sue spalle
         if drc in ('up','down'):
             if abs(self.alpha) < pi/2:
-               self.beta += turnrate * sgn_dir(drc)
+               self.beta += turnrate * sgn_dir(drc) * dt
             else:
-               self.beta += turnrate * -sgn_dir(drc)
+               self.beta += turnrate * -sgn_dir(drc) * dt
 
         # se sto ruotando in orizzontale, il lavoro e' piu' semplice
         # aumenta o diminuisce il valore di alpha
         elif drc in ('right','left'):
-            self.alpha += turnrate * sgn_dir(drc)
+            self.alpha += turnrate * sgn_dir(drc) * dt
 
     def move(self,dt):
         """Muovo il mondo relativamente rispetto al giocatore
@@ -264,9 +275,29 @@ center_image(asteroidimage)
 # asteroids creation
 
 # creo n asteroidi (che vengono messi in una lista)
-asteroids = createasteroids(100)
+asteroids = createasteroids(10)
 
 ###
+
+
+
+
+# Debugger! 
+
+
+attrs = ["alpha","beta","distance"]
+the_logger = debugger.Logger(asteroids[0],attrs)
+def close_safe(func):
+    def inner():
+        _ = func()
+        the_logger.terminate()
+        return _
+    return inner
+window.close = close_safe(window.close)
+
+###
+
+status = 1
 
 
 
@@ -277,6 +308,7 @@ def on_draw():
     window.clear()
     for asteroid in asteroids:
         asteroid.draw()
+        the_logger.log()
 
 ###
 
@@ -285,9 +317,32 @@ def on_draw():
 # update
 
 def update(dt):
+    global status 
+    global start
+    if status == 1:
+        for asteroid in asteroids:
+            asteroid.rotate('up',dt)
+            asteroid.rotate('left',dt)
+    if status == 2:
+        for asteroid in asteroids:
+            asteroid.rotate('down',2*dt)
+            asteroid.rotate('right',dt)
+    if status == 3:
+        for asteroid in asteroids:
+            asteroid.rotate('up',dt)
+            asteroid.rotate('left',3*dt)
+    if status == 4:
+        window.close()
+
+    if time() - start >= 60:
+        status += 1
+        start = time()
 
     # di nuovo, speed e' una variabile globale, ricordiamolo a python
     global speed
+
+    if speed or keys[key.UP] or keys[key.DOWN] or keys[key.LEFT] or keys[key.RIGHT]:
+        pass
 
     # se viene premuta una delle frecce, l'astronave ruota nella direzione indicata
     if keys[key.UP]:
